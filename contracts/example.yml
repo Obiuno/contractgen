@@ -1,0 +1,23 @@
+table:
+  name: users
+  columns:
+    - name: id
+      type: integer
+      primary_key: true
+      description: Primary key, unique identifier for users table
+    - name: username
+      type: string
+      unique: true
+      description: User's log in name
+    - name: email
+      type: string
+      unique: true
+      description: User's email address
+    - name: create_at
+      type: datetime
+      description: When the user was created
+  actions:
+    - create
+    - read
+    - update
+    - delete
