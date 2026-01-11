@@ -4,17 +4,33 @@ table:
     - name: id
       type: integer
       primary_key: true
+      unique: true
+      nullable: false
+      default: autoincrement
+      foreign_key: null
+      example: 1
       description: Primary key, unique identifier for users table
     - name: username
+      primary_key: false
       type: string
       unique: true
+      default: false
+      example: "jsmith"
       description: User's log in name
+      nullable: false
     - name: email
       type: string
       unique: true
+      foreign_key: false
+      example: "jsmith@example.com"
       description: User's email address
     - name: create_at
       type: datetime
+      default: CURRENT_TIMESTAMP
+      primary_key: false
+      unique: false
+      nullable: false
+      example: 'YYYY-MM-DD HH24:MI:SS.FF or 2024-04-17 15:41:38.29'
       description: When the user was created
   actions:
     - create
