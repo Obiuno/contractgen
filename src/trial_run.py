@@ -27,3 +27,13 @@ print(generate_doc(ex_contract))
 print(generate_ddl(ex_contract))
 print(generate_select(ex_contract))
 # %%
+import yaml
+from schema_contract import Contract, SchemaContract
+from generators.ddl_generator import generate_ddl
+
+ex_contract = Contract.from_yaml('../contracts/example.yml')
+
+
+print("--- DDL Script ---")
+print(generate_ddl(ex_contract))
+# %%

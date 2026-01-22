@@ -1,4 +1,4 @@
-table:
+tables:
   name: users
   columns:
     - name: id
