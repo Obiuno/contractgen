@@ -60,6 +60,11 @@ cd contractgen
 # Run examples in trial_run.py
 ```
 
+## Realted Projects
+
+- [SQL DQ Framework](https://github.com/Obiuno/metadata-sql-dq-framework) - Validate data quality with SQL rules
+- [DQ Synthetic Data](https://github.com/Obiuno/dq-synthetic-data) - Generate test data for validation
+
 ## Contributing
 This is v0.1 - feedback and contributions welcome as I develop this further.
 
