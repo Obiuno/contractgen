@@ -1,0 +1,10 @@
+# Python junk
+__pycache__/
+*.pyc
+
+# Editor junk
+.vscode/
+
+# System junk
+.DS_Store
+Thumbs.db
