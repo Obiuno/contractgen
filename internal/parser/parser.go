@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -8,21 +9,21 @@ import (
 )
 
 type Column struct {
-	Name string `yaml:"name"`
-	Type string `yaml:"type"`
-	Constraints []string `yaml:"constraints"`
+	Name        string   `yaml:"name" json:"name"`
+	Type        string   `yaml:"type" json:"type"`
+	Constraints []string `yaml:"constraints" json:"constraints"`
 }
 
 type Table struct {
-	Name string `yaml:"name"`
-	Columns []Column `yaml:"columns"`
-	Description string `yaml:"description"`
+	Name        string   `yaml:"name" json:"name"`
+	Description string   `yaml:"description" json:"description"`
+	Columns     []Column `yaml:"columns" json:"columns"`
 }
 
 type Contract struct {
-	Version string `yaml:"version"`
-	Tables []Table `yaml:"tables"`
-	Description string `yaml:"description"`
+	Version     string  `yaml:"version" json:"version"`
+	Description string  `yaml:"description" json:"description"`
+	Tables      []Table `yaml:"tables" json:"tables"`
 }
 
 func LoadContract(path string) (Contract, error) {
@@ -36,10 +37,14 @@ func LoadContract(path string) (Contract, error) {
 	}
 
 	err = yaml.Unmarshal(data, &contract)
-    if err != nil {
+	if err != nil {
 		fmt.Println("Error:", err)
-        return contract, err
-    }
+		return contract, err
+	}
 
 	return contract, nil
+}
+
+func ContractToJSON(contract Contract) ([]byte, error) {
+	return json.MarshalIndent(contract, "", "  ")
 }

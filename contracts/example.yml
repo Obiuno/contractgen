@@ -8,5 +8,5 @@ tables:
         type: "uuid"
         constraints: ["primary_key", "not_null"]
       - name: "order_value"
-        type: "decimal(12,2)"
+        type: "decimal"
         constraints: ["not_null"]
