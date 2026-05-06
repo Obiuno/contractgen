@@ -9,14 +9,14 @@ import (
 func main() {
 	contract, err := parser.LoadContract("contracts/example.yml")
 	if err != nil {
-		fmt.Println("Error", err)
+		fmt.Println("Error loading contract", err)
 		return
 	}
 	//fmt.Printf("%+v\n", contract)
 
 	jsonContract, err := parser.ContractToJSON(contract)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println("Error  converting to JSON:", err)
 	}
 
 	fmt.Println(string(jsonContract))

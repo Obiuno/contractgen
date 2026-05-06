@@ -33,12 +33,13 @@ func LoadContract(path string) (Contract, error) {
 
 	// classic error handling
 	if err != nil {
+		fmt.Println("Error reading file", err)
 		return contract, err
 	}
 
 	err = yaml.Unmarshal(data, &contract)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println("Error parsing YAML:", err)
 		return contract, err
 	}
 
