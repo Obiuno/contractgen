@@ -1,57 +1,89 @@
 package generators
 
 import (
-	"contractgen/internal/parser"
+	"fmt"
 	"slices"
 	"strings"
+
+	"contractgen/internal/parser"
 )
 
-// create table and name
-
-// loop through columns
-// columns data type, a struct
-
-// column type
-
 func GenerateDDL(contract parser.Contract) string {
+	var tables strings.Builder
+	var constraints strings.Builder
 
-	var allTables []string
+	// Section Headers
+	tables.WriteString("-- ==========================================\n")
+	tables.WriteString("-- TABLES\n")
+	tables.WriteString("-- ==========================================\n\n")
+
+	constraints.WriteString("-- ==========================================\n")
+	constraints.WriteString("-- CONSTRAINTS (PK, FK, UNIQUE, NOT NULL)\n")
+	constraints.WriteString("-- ==========================================\n\n")
 
 	for _, table := range contract.Tables {
+		tableName := strings.ToLower(table.Name)
 
-		var ddl strings.Builder
-		ddl.WriteString("CREATE TABLE IF NOT EXISTS ")
-		ddl.WriteString(strings.ToLower(table.Name))
-		ddl.WriteString(" (\n")
+		// CREATE TABLE — pure structure, no constraints
+		tables.WriteString(fmt.Sprintf("-- Table: %s\n", tableName))
+		tables.WriteString("CREATE TABLE IF NOT EXISTS ")
+		tables.WriteString(tableName)
+		tables.WriteString(" (\n")
 
-		var columns []string
+		columns := make([]string, 0, len(table.Columns))
+
+		constraints.WriteString(fmt.Sprintf("-- Constraints for %s\n", tableName))
+
 		for _, column := range table.Columns {
-			var col strings.Builder
-			col.WriteString("\t")
-			col.WriteString(strings.ToLower(column.Name))
-			col.WriteString(" ")
-			col.WriteString(strings.ToUpper(column.Type))
+			colName := strings.ToLower(column.Name)
 
-			if slices.Contains(column.Constraints, "primary_key") {
-				col.WriteString(" PRIMARY KEY")
-			}
+			// column, just name and type
+			columns = append(columns, fmt.Sprintf(
+				"\t%s %s",
+				colName,
+				strings.ToUpper(column.Type),
+			))
 
-			if slices.Contains(column.Constraints, "unique") {
-				col.WriteString(" UNIQUE")
-			}
-
+			// NOT NULL first (must come before PRIMARY KEY)
 			if slices.Contains(column.Constraints, "not_null") {
-				col.WriteString(" NOT NULL")
+				constraints.WriteString(fmt.Sprintf(
+					"ALTER TABLE %s ALTER COLUMN %s SET NOT NULL;\n",
+					tableName, colName,
+				))
 			}
 
-			columns = append(columns, col.String())
+			// then PRIMARY KEY
+			if slices.Contains(column.Constraints, "primary_key") {
+				constraints.WriteString(fmt.Sprintf(
+					"ALTER TABLE %s ADD CONSTRAINT pk_%s PRIMARY KEY (%s);\n",
+					tableName, tableName, colName,
+				))
+			}
+
+			// then UNIQUE
+			if slices.Contains(column.Constraints, "unique") {
+				constraints.WriteString(fmt.Sprintf(
+					"ALTER TABLE %s ADD CONSTRAINT uq_%s_%s UNIQUE (%s);\n",
+					tableName, tableName, colName, colName,
+				))
+			}
+
+			// then FOREIGN KEY
+			if column.References != nil {
+				refTable := strings.ToLower(column.References.Table)
+				refColumn := strings.ToLower(column.References.Column)
+
+				constraints.WriteString(fmt.Sprintf(
+					"ALTER TABLE %s ADD CONSTRAINT fk_%s_%s FOREIGN KEY (%s) REFERENCES %s (%s);\n",
+					tableName, tableName, colName, colName, refTable, refColumn,
+				))
+			}
+
 		}
 
-		ddl.WriteString(strings.Join(columns, ",\n"))
-		ddl.WriteString("\n);")
-		allTables = append(allTables, ddl.String())
+		tables.WriteString(strings.Join(columns, ",\n"))
+		tables.WriteString("\n);\n\n")
 	}
 
-	return strings.Join(allTables, "\n\n")
-
+	return "BEGIN;\n\n" + tables.String() + "\n" + constraints.String() + "\nCOMMIT;"
 }

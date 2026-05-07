@@ -8,10 +8,16 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type Reference struct {
+	Table  string `yaml:"table" json:"table"`
+	Column string `yaml:"column" json:"column"`
+}
+
 type Column struct {
-	Name        string   `yaml:"name" json:"name"`
-	Type        string   `yaml:"type" json:"type"`
-	Constraints []string `yaml:"constraints" json:"constraints"`
+	Name        string    `yaml:"name" json:"name"`
+	Type        string    `yaml:"type" json:"type"`
+	Constraints []string  `yaml:"constraints" json:"constraints"`
+	References  *Reference `yaml:"references,omitempty" json:"references,omitempty"`
 }
 
 type Table struct {
