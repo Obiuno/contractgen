@@ -12,7 +12,6 @@ func GenerateDDL(contract parser.Contract) string {
 	var tables strings.Builder
 	var constraints strings.Builder
 
-	// Section Headers
 	tables.WriteString("-- ==========================================\n")
 	tables.WriteString("-- TABLES\n")
 	tables.WriteString("-- ==========================================\n\n")
@@ -24,66 +23,66 @@ func GenerateDDL(contract parser.Contract) string {
 	for _, table := range contract.Tables {
 		tableName := strings.ToLower(table.Name)
 
-		// CREATE TABLE — pure structure, no constraints
 		tables.WriteString(fmt.Sprintf("-- Table: %s\n", tableName))
 		tables.WriteString("CREATE TABLE IF NOT EXISTS ")
 		tables.WriteString(tableName)
 		tables.WriteString(" (\n")
 
 		columns := make([]string, 0, len(table.Columns))
-
-		constraints.WriteString(fmt.Sprintf("-- Constraints for %s\n", tableName))
+		var tableConstraints strings.Builder
 
 		for _, column := range table.Columns {
 			colName := strings.ToLower(column.Name)
 
-			// column, just name and type
 			columns = append(columns, fmt.Sprintf(
 				"\t%s %s",
 				colName,
 				strings.ToUpper(column.Type),
 			))
 
-			// NOT NULL first (must come before PRIMARY KEY)
 			if slices.Contains(column.Constraints, "not_null") {
-				constraints.WriteString(fmt.Sprintf(
+				tableConstraints.WriteString(fmt.Sprintf(
 					"ALTER TABLE %s ALTER COLUMN %s SET NOT NULL;\n",
 					tableName, colName,
 				))
 			}
-
-			// then PRIMARY KEY
 			if slices.Contains(column.Constraints, "primary_key") {
-				constraints.WriteString(fmt.Sprintf(
+				tableConstraints.WriteString(fmt.Sprintf(
 					"ALTER TABLE %s ADD CONSTRAINT pk_%s PRIMARY KEY (%s);\n",
 					tableName, tableName, colName,
 				))
 			}
-
-			// then UNIQUE
 			if slices.Contains(column.Constraints, "unique") {
-				constraints.WriteString(fmt.Sprintf(
+				tableConstraints.WriteString(fmt.Sprintf(
 					"ALTER TABLE %s ADD CONSTRAINT uq_%s_%s UNIQUE (%s);\n",
 					tableName, tableName, colName, colName,
 				))
 			}
-
-			// then FOREIGN KEY
 			if column.References != nil {
-				refTable := strings.ToLower(column.References.Table)
-				refColumn := strings.ToLower(column.References.Column)
-
-				constraints.WriteString(fmt.Sprintf(
+				tableConstraints.WriteString(fmt.Sprintf(
 					"ALTER TABLE %s ADD CONSTRAINT fk_%s_%s FOREIGN KEY (%s) REFERENCES %s (%s);\n",
-					tableName, tableName, colName, colName, refTable, refColumn,
+					tableName, tableName, colName, colName,
+					strings.ToLower(column.References.Table),
+					strings.ToLower(column.References.Column),
 				))
 			}
-
 		}
 
 		tables.WriteString(strings.Join(columns, ",\n"))
 		tables.WriteString("\n);\n\n")
+
+		// only write constraints section if there are any
+		if tableConstraints.Len() > 0 {
+			constraints.WriteString(fmt.Sprintf("-- Constraints for %s\n", tableName))
+			constraints.WriteString(tableConstraints.String())
+			constraints.WriteString("\n")
+		}
 	}
 
-	return "BEGIN;\n\n" + tables.String() + "\n" + constraints.String() + "\nCOMMIT;"
+	var output strings.Builder
+	output.WriteString("BEGIN;\n\n")
+	output.WriteString(tables.String())
+	output.WriteString(constraints.String())
+	output.WriteString("COMMIT;\n")
+	return output.String()
 }
