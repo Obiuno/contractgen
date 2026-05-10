@@ -4,6 +4,7 @@ import (
 	"contractgen/internal/cli"
 	"contractgen/internal/generators"
 	"contractgen/internal/parser"
+	"contractgen/internal/schema"
 	"flag"
 	"fmt"
 	"os"
@@ -38,6 +39,11 @@ func main() {
 		fmt.Println(string(jsonContract))
 
 	}
+
+	//build the schema before generating contract, as refactor for using validated schemas
+
+	schema := schema.BuildSchema(contract)
+	fmt.Printf("%+v\n", schema)
 
 	ddl := generators.GenerateDDL(contract)
 
