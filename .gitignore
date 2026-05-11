@@ -11,6 +11,7 @@ Thumbs.db
 
 # dev stuff
 notes.md
+*.sql
 
 # Binaries
 *.exe
