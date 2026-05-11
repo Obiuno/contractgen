@@ -23,6 +23,12 @@ func GenerateDDL(contract parser.Contract) string {
 	for _, table := range contract.Tables {
 		tableName := strings.ToLower(table.Name)
 
+		// lower the PK list once for lookup
+		pkColumns := make([]string, len(table.PrimaryKey))
+		for i, col := range table.PrimaryKey {
+			pkColumns[i] = strings.ToLower(col)
+		}
+
 		tables.WriteString(fmt.Sprintf("-- Table: %s\n", tableName))
 		tables.WriteString("CREATE TABLE IF NOT EXISTS ")
 		tables.WriteString(tableName)
@@ -31,8 +37,10 @@ func GenerateDDL(contract parser.Contract) string {
 		columns := make([]string, 0, len(table.Columns))
 		var tableConstraints strings.Builder
 
+		// Pass 1: column definitions and column-level constraints
 		for _, column := range table.Columns {
 			colName := strings.ToLower(column.Name)
+			isPK := slices.Contains(pkColumns, colName)
 
 			columns = append(columns, fmt.Sprintf(
 				"\t%s %s",
@@ -40,24 +48,15 @@ func GenerateDDL(contract parser.Contract) string {
 				strings.ToUpper(column.Type),
 			))
 
-			if slices.Contains(column.Constraints, "not_null") {
+			// NOT NULL: explicit OR inferred from being a PK column
+			if slices.Contains(column.Constraints, "not_null") || isPK {
 				tableConstraints.WriteString(fmt.Sprintf(
 					"ALTER TABLE %s ALTER COLUMN %s SET NOT NULL;\n",
 					tableName, colName,
 				))
 			}
-			if slices.Contains(column.Constraints, "primary_key") {
-				tableConstraints.WriteString(fmt.Sprintf(
-					"ALTER TABLE %s ADD CONSTRAINT pk_%s PRIMARY KEY (%s);\n",
-					tableName, tableName, colName,
-				))
-			}
-			if slices.Contains(column.Constraints, "unique") {
-				tableConstraints.WriteString(fmt.Sprintf(
-					"ALTER TABLE %s ADD CONSTRAINT uq_%s_%s UNIQUE (%s);\n",
-					tableName, tableName, colName, colName,
-				))
-			}
+
+			// FK still column-level (single-column FK shorthand)
 			if column.References != nil {
 				tableConstraints.WriteString(fmt.Sprintf(
 					"ALTER TABLE %s ADD CONSTRAINT fk_%s_%s FOREIGN KEY (%s) REFERENCES %s (%s);\n",
@@ -68,10 +67,32 @@ func GenerateDDL(contract parser.Contract) string {
 			}
 		}
 
+		// Pass 2: table-level PRIMARY KEY
+		if len(pkColumns) > 0 {
+			tableConstraints.WriteString(fmt.Sprintf(
+				"ALTER TABLE %s ADD CONSTRAINT pk_%s PRIMARY KEY (%s);\n",
+				tableName, tableName, strings.Join(pkColumns, ", "),
+			))
+		}
+
+		// Pass 3: table-level UNIQUE constraints
+		for _, group := range table.Unique {
+			// skip if this group is the same as the PK (already enforced)
+			if slices.Equal(pkColumns, lowerAll(group)) {
+				continue
+			}
+
+			lowered := lowerAll(group)
+			tableConstraints.WriteString(fmt.Sprintf(
+				"ALTER TABLE %s ADD CONSTRAINT uq_%s_%s UNIQUE (%s);\n",
+				tableName, tableName, strings.Join(lowered, "_"),
+				strings.Join(lowered, ", "),
+			))
+		}
+
 		tables.WriteString(strings.Join(columns, ",\n"))
 		tables.WriteString("\n);\n\n")
 
-		// only write constraints section if there are any
 		if tableConstraints.Len() > 0 {
 			constraints.WriteString(fmt.Sprintf("-- Constraints for %s\n", tableName))
 			constraints.WriteString(tableConstraints.String())
@@ -85,4 +106,12 @@ func GenerateDDL(contract parser.Contract) string {
 	output.WriteString(constraints.String())
 	output.WriteString("COMMIT;\n")
 	return output.String()
+}
+
+func lowerAll(names []string) []string {
+	out := make([]string, len(names))
+	for i, n := range names {
+		out[i] = strings.ToLower(n)
+	}
+	return out
 }

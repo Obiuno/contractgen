@@ -12,23 +12,23 @@ import (
 
 func main() {
 	// get instructions from the CLI
-	config := cli.SetupFlags()
+	cfg := cli.SetupFlags()
 
-	if config.Input == "" {
+	if cfg.Input == "" {
 		fmt.Fprintln(os.Stderr, "Error: --input is required")
 		flag.Usage()
 		os.Exit(1)
 	}
 
 	// send it correct place
-	contract, err := parser.LoadContract(config.Input)
+	contract, err := parser.LoadContract(cfg.Input)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error loading contract:", err)
 		os.Exit(1)
 	}
 
-	if config.ShowJSON {
+	if cfg.ShowJSON {
 		jsonContract, err := parser.ContractToJSON(contract)
 
 		if err != nil {
@@ -42,8 +42,8 @@ func main() {
 
 	//build the schema before generating contract, as refactor for using validated schemas
 
-	schema := schema.BuildSchema(contract)
-	fmt.Printf("%+v\n", schema)
+	sch := schema.BuildSchema(contract)
+	fmt.Printf("%+v\n", sch)
 
 	ddl := generators.GenerateDDL(contract)
 
@@ -51,12 +51,12 @@ func main() {
 	data := []byte(ddl)
 
 	// output is where to save it
-	err = os.WriteFile(config.Output, data, 0644)
+	err = os.WriteFile(cfg.Output, data, 0644)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to save SQL to %s: %v\n", config.Output, err)
+		fmt.Fprintf(os.Stderr, "Failed to save SQL to %s: %v\n", cfg.Output, err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("Success! SQL generated and saved to: %s\n", config.Output)
+	fmt.Printf("Success! SQL generated and saved to: %s\n", cfg.Output)
 }
