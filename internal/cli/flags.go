@@ -5,19 +5,36 @@ import (
 )
 
 type Config struct {
-	Input    string
-	Output   string
-	ShowJSON bool
+    Input      string
+    OutputDir  string
+    DDL        bool
+    Doc        bool
+    JSON       bool
 }
 
 func SetupFlags() Config {
-	input := flag.String("input", "", "YAML contract Path")
-	output := flag.String("output", "schema.sql", "SQL output path")
-	showJSON := flag.Bool("json", false, "print JSON")
-	flag.Parse()
-	return Config{
-		Input:    *input,
-		Output:   *output,
-		ShowJSON: *showJSON,
-	}
+    input := flag.String("input", "", "YAML contract path")
+    outputDir := flag.String("output-dir", ".", "Directory to write output files")
+    ddl := flag.Bool("ddl", false, "produce SQL DDL")
+    doc := flag.Bool("doc", false, "produce markdown docs")
+    json := flag.Bool("json", false, "produce JSON")
+    flag.Parse()
+
+    cfg := Config{
+        Input:     *input,
+        OutputDir: *outputDir,
+        DDL:       *ddl,
+        Doc:       *doc,
+        JSON:      *json,
+    }
+
+    // If no output flag is set, produce everything
+    if !cfg.DDL && !cfg.Doc && !cfg.JSON {
+        cfg.DDL = true
+        cfg.Doc = true
+        cfg.JSON = true
+    }
+
+    return cfg
 }
+

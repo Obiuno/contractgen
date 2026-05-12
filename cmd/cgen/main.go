@@ -4,11 +4,11 @@ import (
 	"contractgen/internal/cli"
 	"contractgen/internal/generators"
 	"contractgen/internal/parser"
-	"contractgen/internal/schema"
 	"contractgen/internal/validator"
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
 func main() {
@@ -29,7 +29,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if errs := validator.Validate(contract); len(errs) >0 {
+	if errs := validator.Validate(contract); len(errs) > 0 {
 		fmt.Fprintln(os.Stderr, "validation failed:")
 		for _, e := range errs {
 			fmt.Fprintf(os.Stderr, " - %s\n", e.Error())
@@ -37,35 +37,38 @@ func main() {
 		os.Exit(1)
 	}
 
-	if cfg.ShowJSON {
+	if cfg.JSON {
 		jsonContract, err := parser.ContractToJSON(contract)
-
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error converting to JSON:", err)
 			os.Exit(1)
 		}
-
-		fmt.Println(string(jsonContract))
-
+		path := filepath.Join(cfg.OutputDir, "schema.json")
+		if err := os.WriteFile(path, jsonContract, 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to save JSON to %s: %v\n", path, err)
+			os.Exit(1)
+		}
+		fmt.Printf("JSON written to %s\n", path)
 	}
 
-	//build the schema before generating contract, as refactor for using validated schemas
-
-	sch := schema.BuildSchema(contract)
-	fmt.Printf("%+v\n", sch)
-
-	ddl := generators.GenerateDDL(contract)
-
-	//convert the string to byte slice
-	data := []byte(ddl)
-
-	// output is where to save it
-	err = os.WriteFile(cfg.Output, data, 0644)
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to save SQL to %s: %v\n", cfg.Output, err)
-		os.Exit(1)
+	if cfg.DDL {
+		ddl := generators.GenerateDDL(contract)
+		path := filepath.Join(cfg.OutputDir, "schema.sql")
+		if err := os.WriteFile(path, []byte(ddl), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to save SQL to %s: %v\n", path, err)
+			os.Exit(1)
+		}
+		fmt.Printf("DDL written to %s\n", path)
 	}
 
-	fmt.Printf("Success! SQL generated and saved to: %s\n", cfg.Output)
+	if cfg.Doc {
+		doc := generators.GenerateDocs(contract)
+		path := filepath.Join(cfg.OutputDir, "schema.md")
+		if err := os.WriteFile(path, []byte(doc), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to save markdown to %s: %v\n", path, err)
+			os.Exit(1)
+		}
+		fmt.Printf("Docs written to %s\n", path)
+	}
+
 }
