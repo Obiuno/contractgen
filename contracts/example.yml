@@ -1,12 +1,67 @@
 version: "1.0"
-description: "Core logic for processing customer transactions"
+description: "Core schema for the orders platform"
+
 tables:
-  - name: "customer_orders"
-    description: "Tracks all successful checkout events"
+  - name: customers
+    description: "Customer master data"
     columns:
-      - name: "id"
-        type: "uuid"
-        constraints: ["primary_key", "not_null"]
-      - name: "order_value"
-        type: "decimal"
+      - name: id
+        type: uuid
         constraints: ["not_null"]
+      - name: email
+        type: varchar
+        constraints: ["not_null"]
+      - name: name
+        type: varchar
+        constraints: ["not_null"]
+    primary_key: [id]
+    unique:
+      - [email]
+
+  - name: orders
+    description: "Customer orders"
+    columns:
+      - name: id
+        type: uuid
+        constraints: ["not_null"]
+      - name: customer_id
+        type: uuid
+        constraints: ["not_null"]
+        references:
+          table: customers
+          column: id
+      - name: order_total
+        type: decimal
+        constraints: ["not_null"]
+    primary_key: [id]
+
+  - name: order_items
+    description: "Line items for each order"
+    columns:
+      - name: order_id
+        type: uuid
+        constraints: ["not_null"]
+        references:
+          table: orders
+          column: id
+      - name: product_id
+        type: uuid
+        constraints: ["not_null"]
+        references:
+          table: products
+          column: id
+      - name: quantity
+        type: integer
+        constraints: ["not_null"]
+    primary_key: [order_id, product_id]
+
+  - name: products
+    description: "Product master data"
+    columns:
+      - name: id
+        type: uuid
+        constraints: ["not_null"]
+      - name: name
+        type: varchar
+        constraints: ["not_null"]
+    primary_key: [id]
