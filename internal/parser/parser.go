@@ -36,18 +36,18 @@ type Contract struct {
 }
 
 func LoadContract(path string) (Contract, error) {
-    var contract Contract
+	var contract Contract
 
-    data, err := os.ReadFile(path)
-    if err != nil {
-        return contract, fmt.Errorf("reading contract file %q: %w", path, err)
-    }
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return contract, fmt.Errorf("reading contract file %q: %w", path, err)
+	}
 
-    if err := yaml.Unmarshal(data, &contract); err != nil {
-        return contract, fmt.Errorf("parsing contract YAML: %w", err)
-    }
+	if err := yaml.Unmarshal(data, &contract); err != nil {
+		return contract, fmt.Errorf("parsing contract YAML: %w", err)
+	}
 
-    return contract, nil
+	return contract, nil
 }
 
 func ContractToJSON(contract Contract) ([]byte, error) {

@@ -77,7 +77,7 @@ func GenerateDDL(contract parser.Contract) string {
 
 		// Pass 3: table-level UNIQUE constraints
 		for _, group := range table.Unique {
-			// skip if this group is the same as the PK (already enforced)
+			// skip if this group, is the same as the PK (already enforced)
 			if slices.Equal(pkColumns, lowerAll(group)) {
 				continue
 			}

@@ -53,4 +53,15 @@ tables:
       - name: quantity
         type: integer
         constraints: ["not_null"]
-    primary_key: [order_id, product_id]   # composite PK
+    primary_key: [order_id, product_id]
+
+  - name: products
+    description: "Product master data"
+    columns:
+      - name: id
+        type: uuid
+        constraints: ["not_null"]
+      - name: name
+        type: varchar
+        constraints: ["not_null"]
+    primary_key: [id]

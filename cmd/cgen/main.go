@@ -5,6 +5,7 @@ import (
 	"contractgen/internal/generators"
 	"contractgen/internal/parser"
 	"contractgen/internal/schema"
+	"contractgen/internal/validator"
 	"flag"
 	"fmt"
 	"os"
@@ -25,6 +26,14 @@ func main() {
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error loading contract:", err)
+		os.Exit(1)
+	}
+
+	if errs := validator.Validate(contract); len(errs) >0 {
+		fmt.Fprintln(os.Stderr, "validation failed:")
+		for _, e := range errs {
+			fmt.Fprintf(os.Stderr, " - %s\n", e.Error())
+		}
 		os.Exit(1)
 	}
 

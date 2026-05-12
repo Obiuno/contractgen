@@ -1,0 +1,39 @@
+version: "1.0"
+description: "Multiple error test"
+
+tables:
+  - name: customers
+    columns:
+      - name: id
+        type: uuid
+      - name: email
+        type: varchar
+      - name: email # duplicate column
+        type: varchar
+    primary_key: [id]
+
+  - name: customers # duplicate table
+    columns:
+      - name: id
+        type: uuid
+
+  - name: orders
+    columns:
+      - name: id
+        type: uuid
+      - name: customer_id
+        type: uuid
+        references:
+          table: customers
+          column: id
+      - name: product_id
+        type: uuid
+        references:
+          table: products # unknown table
+          column: id
+      - name: status_id
+        type: uuid
+        references:
+          table: customers
+          column: status_code # unknown column
+    primary_key: [id]
