@@ -4,11 +4,13 @@ import (
 	"contractgen/internal/cli"
 	"contractgen/internal/generators"
 	"contractgen/internal/parser"
+	"contractgen/internal/schema"
 	"contractgen/internal/validator"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func main() {
@@ -35,6 +37,15 @@ func main() {
 			fmt.Fprintf(os.Stderr, " - %s\n", e.Error())
 		}
 		os.Exit(1)
+	}
+
+	sch := schema.BuildSchema(contract)
+
+	order, err := sch.TopologicalOrder()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "WARNING:", err)
+	} else {
+		fmt.Fprintln(os.Stderr, "Topological order:", strings.Join(order, ", "))
 	}
 
 	if cfg.JSON {
