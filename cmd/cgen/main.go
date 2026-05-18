@@ -82,4 +82,14 @@ func main() {
 		fmt.Printf("Docs written to %s\n", path)
 	}
 
+	if cfg.Mermaid {
+		mmd := generators.GenerateMermaid(sch)
+		path := filepath.Join(cfg.OutputDir, "schema.mmd")
+		if err := os.WriteFile(path, []byte(mmd), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to save mermaid to %s: %v\n", path, err)
+			os.Exit(1)
+		}
+		fmt.Printf("Mermaid written to %s\n", path)
+	}
+
 }
