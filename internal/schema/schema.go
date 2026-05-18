@@ -6,14 +6,16 @@ import (
 )
 
 type Schema struct {
-	Tables  map[string]*Table
-	Version string
+	Tables        map[string]*Table
+	OrderedTables []string
+	Version       string
 }
 
 type Table struct {
-	Columns    map[string]*Column
-	PrimaryKey []string
-	Unique     [][]string
+	Columns        map[string]*Column
+	OrderedColumns []string
+	PrimaryKey     []string
+	Unique         [][]string
 }
 
 type Column struct {
@@ -25,6 +27,7 @@ type Column struct {
 func BuildSchema(contract parser.Contract) *Schema {
 	schema := &Schema{
 		Tables:  make(map[string]*Table, len(contract.Tables)),
+		OrderedTables: make([]string, 0, len(contract.Tables)),
 		Version: contract.Version,
 	}
 
@@ -33,6 +36,7 @@ func BuildSchema(contract parser.Contract) *Schema {
 
 		meta := &Table{
 			Columns:    make(map[string]*Column, len(table.Columns)),
+			OrderedColumns: make([]string, 0, len(table.Columns)),
 			PrimaryKey: lowerAll(table.PrimaryKey),
 			Unique:     lowerNested(table.Unique),
 		}
@@ -45,9 +49,11 @@ func BuildSchema(contract parser.Contract) *Schema {
 				Constraints: col.Constraints,
 				References:  col.References,
 			}
+			meta.OrderedColumns = append(meta.OrderedColumns, cName)
 		}
 
 		schema.Tables[tName] = meta
+		schema.OrderedTables =append(schema.OrderedTables, tName)
 	}
 
 	return schema

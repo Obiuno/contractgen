@@ -2,10 +2,11 @@
 
 Generate SQL DDL, JSON, and documentation from YAML data contracts.
 
-⚠️ **v0.2 — Go rewrite**
+⚠️ **v0.3 — Schema graph, ER Diagram, topological sort**
 
-Rewrite completed for core generators, validator and CLI completed in Go.
-Testing and additional features in progress.
+Core pipeline complete (parse → validate → schema → generators).
+Schema has ordered iteration and topological order with cycle detection.
+Testing covers validator and topological sort algorithm.
 
 Define your schema once in YAML:
 
@@ -69,15 +70,14 @@ go run ./cmd/cgen --input contracts/example.yml
 ## Usage
 
 ```txt
-if no flags specified, defaults to produce all 3
-
 --input    Path to YAML contract file (required)
---output-dir   directory where files are generated
+--output-dir   directory for output files (default: current directory)
 
-Boolean flags
+Output flgas (if none specified all are produced)
 --json     produces schema in JSON format
 --ddl      produces schema DDL
 --doc      produces doc describing schema
+--mermaid  produces an ER Diagram using mermaid
 ```
 
 ## Contract Format
@@ -122,17 +122,18 @@ The tool applies a small set of inferences to keep contracts concise:
 
 Inferences are applied silently for now.
 
-## Current Features (v0.2)
+## Current Features (v0.3)
 
-- ✅ YAML contract parsing (Go)
-- ✅ Multi-table support
-- ✅ SQL DDL generation with transactional wrapping
-- ✅ Foreign key constraints
-- ✅ JSON output for cross-language usage
-- ✅ CLI with flag-based interface for different outputs
-- ✅ Composite primary keys and unique constraints (table-level)
-- ✅ Validator for: duplicate tables, duplicate columns and foreign keys
-- ✅ Markdown document generation
+- YAML contract parsing with multi-table support
+- SQL DDL generation (Postgres dialect) with transactional wrapping
+- Foreign key constraints, primary keys, composite keys, and unique constraints
+- Markdown data dictionary generation
+- Mermaid ER diagram generation
+- JSON output for cross-tool interoperability
+- Schema validator: duplicate tables, duplicate columns, foreign key resolution
+- Topological sort with cycle detection (Kahn's algorithm)
+- CLI with selective output flags and configurable output directory
+- Test suite covering validator (100% coverage) and topological sort
 
 ## Planned Features
 
@@ -147,23 +148,22 @@ cmd/cgen/         CLI entry point
 internal/
 ├── parser/       YAML → Contract structs
 ├── validator/    Contract → validation
-├── schema/       Contract → logical schema (lookup model)
-├── generators/   Schema → output formats (DDL, JSON, Doc)
+├── schema/       Contract → logical schema
+├── generators/   Schema → output formats (DDL, doc, JSON, mermaid)
 └── cli/          Flag parsing and config
 ```
 
 ## Why This Exists
 
-Data contracts are foundational but typically maintained manually across schemas, docs, and validation rules — leading to drift between what the contract says and what the database actually enforces.
+Data contracts are foundational but typically maintained manually across schemas,
+docs, and validation rules — leading to drift between what the contract says and
+what the database actually enforces.
 
-ContractGen treats the YAML contract as the single source of truth and generates the rest:
-
-- DDL for database creation
-- JSON for cross-tool interop
-- Docs as a starting point for a data dictionary
-- (Planned) validation rules, sample queries
-
-The goal is a small, focused tool that does one thing well: keep your data contracts and generated artifacts in sync.
+ContractGen treats the YAML contract as the single source of truth and acts as a
+*compile target*: it parses, validates, and produces a structured Schema that
+downstream consumers (DDL, docs, diagrams, JSON) can render. The architecture
+follows the pattern used by tools like protoc, OpenAPI, and dbt — a typed
+specification with independent consumers.
 
 ## Related Projects
 

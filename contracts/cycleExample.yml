@@ -1,0 +1,15 @@
+version: "1.0"
+description: "Cyclic schema for testing topological sort"
+
+tables:
+  - name: employee
+    columns:
+      - name: id
+        type: uuid
+        constraints: ["not_null"]
+      - name: manager_id
+        type: uuid
+        references:
+          table: employee
+          column: id
+    primary_key: [id]
