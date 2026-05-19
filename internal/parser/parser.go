@@ -35,19 +35,22 @@ type Contract struct {
 	Tables      []Table `yaml:"tables" json:"tables"`
 }
 
-func LoadContract(path string) (Contract, error) {
+func ParseContract(data []byte) (Contract, error) {
 	var contract Contract
+	if err := yaml.Unmarshal(data, &contract); err != nil {
+		return contract, fmt.Errorf("parsing contract yaml: %w", err)
+	}
+	return contract, nil
+}
+
+func LoadContract(path string) (Contract, error) {
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return contract, fmt.Errorf("reading contract file %q: %w", path, err)
+		return Contract{}, fmt.Errorf("reading contract file %q: %w", path, err)
 	}
 
-	if err := yaml.Unmarshal(data, &contract); err != nil {
-		return contract, fmt.Errorf("parsing contract YAML: %w", err)
-	}
-
-	return contract, nil
+	return ParseContract(data)
 }
 
 func ContractToJSON(contract Contract) ([]byte, error) {
