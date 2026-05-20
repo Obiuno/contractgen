@@ -1,9 +1,9 @@
 package schema
 
 import (
+	"slices"
 	"strings"
 	"testing"
-	"slices"
 
 	"contractgen/internal/parser"
 )
@@ -240,13 +240,13 @@ func TestTopologicalOrderDeterminism(t *testing.T) {
 	}
 
 	for i := 0; i < 20; i++ {
-        result, err := s.TopologicalOrder()
-        if err != nil {
-            t.Fatalf("run %d: unexpected error: %v", i, err)
-        }
-        if !slices.Equal(result, first) {
-            t.Errorf("run %d: got %v, want %v (determinism violated)", i, result, first)
-        }
-    }
+		result, err := s.TopologicalOrder()
+		if err != nil {
+			t.Fatalf("run %d: unexpected error: %v", i, err)
+		}
+		if !slices.Equal(result, first) {
+			t.Errorf("run %d: got %v, want %v (determinism violated)", i, result, first)
+		}
+	}
 
 }

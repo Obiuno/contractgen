@@ -4,28 +4,28 @@ import (
 	"fmt"
 	"strings"
 
-	"contractgen/internal/schema"
+	"contractgen/internal/parser"
 )
 
-func GenerateMermaid(s *schema.Schema) string {
+func GenerateMermaid(contract parser.Contract) string {
 	var erd strings.Builder
 
 	erd.WriteString("erDiagram\n")
 
 	// Entities
-	for _, name := range s.OrderedTables {
-		table := s.Tables[name]
+	for _, table := range contract.Tables {
+		tName := strings.ToLower(table.Name)
 
-		erd.WriteString(fmt.Sprintf("\t%s {\n", name))
+		erd.WriteString(fmt.Sprintf("\t%s {\n", tName))
 
 		pkCol := make(map[string]bool, len(table.PrimaryKey))
 		for _, pk := range table.PrimaryKey {
-			pkCol[pk] = true
+			pkCol[strings.ToLower(pk)] = true
 		}
 
-		for _, colName := range table.OrderedColumns {
-			col := table.Columns[colName]
-			isPK := pkCol[colName]
+		for _, col := range table.Columns {
+			cName := strings.ToLower(col.Name)
+			isPK := pkCol[cName]
 			isFK := col.References != nil
 
 			var marker string
@@ -39,27 +39,29 @@ func GenerateMermaid(s *schema.Schema) string {
 			}
 
 			if marker == "" {
-				erd.WriteString(fmt.Sprintf("\t\t%s %s\n", col.Type, colName))
+				erd.WriteString(fmt.Sprintf("\t\t%s %s\n", col.Type, cName))
 			} else {
-				erd.WriteString(fmt.Sprintf("\t\t%s %s %s\n", col.Type, colName, marker))
+				erd.WriteString(fmt.Sprintf("\t\t%s %s %s\n", col.Type, cName, marker))
 			}
 		}
 		erd.WriteString("\t}\n")
 	}
 
 	// Relationships
-	for _, name := range s.OrderedTables {
-		table := s.Tables[name]
-		for _, colName := range table.OrderedColumns {
-			col := table.Columns[colName]
+	for _, table := range contract.Tables {
+		tName := strings.ToLower(table.Name)
+		for _, col := range table.Columns {
 			if col.References == nil {
 				continue
 			}
+
+			cName := strings.ToLower(col.Name)
+
 			refTable := strings.ToLower(col.References.Table)
 			erd.WriteString(fmt.Sprintf(
 				"\t%s ||--o{ %s : \"via %s.%s → %s.%s\"\n",
-				refTable, name,
-				name, colName,
+				refTable, tName,
+				tName, cName,
 				refTable, strings.ToLower(col.References.Column),
 			))
 		}
