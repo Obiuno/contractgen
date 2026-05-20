@@ -3,6 +3,7 @@ package main
 import (
 	"contractgen/internal/cli"
 	"contractgen/internal/generators"
+	"contractgen/internal/normalise"
 	"contractgen/internal/parser"
 	"contractgen/internal/schema"
 	"contractgen/internal/validator"
@@ -30,6 +31,8 @@ func main() {
 		fmt.Fprintln(os.Stderr, "Error loading contract:", err)
 		os.Exit(1)
 	}
+
+	normalise.Normalise(&contract)
 
 	if errs := validator.Validate(contract); len(errs) > 0 {
 		fmt.Fprintln(os.Stderr, "validation failed:")
