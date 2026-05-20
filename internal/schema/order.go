@@ -11,7 +11,7 @@ type graph struct {
 }
 
 // buildGraph constructs the dependency graph from the schema's FKs.
-// Edges point from referenced tables to referencing tables 
+// Edges point from referenced tables to referencing tables
 func (s *Schema) buildGraph() *graph {
 	g := &graph{
 		adj:      make(map[string][]string, len(s.Tables)),
@@ -77,15 +77,14 @@ func (s *Schema) TopologicalOrder() ([]string, error) {
 	// check length of result against number of tables for cycles
 	// collect tables and return error
 	if len(result) != len(s.Tables) {
-    var cycledTables []string
-    for _, name := range s.OrderedTables {
-        if g.inDegree[name] > 0 {
-            cycledTables = append(cycledTables, name)
-        }
-    }
-    return nil, fmt.Errorf("cycle detected in the following tables:\n%s", strings.Join(cycledTables, ", "))
-}
-
+		var cycledTables []string
+		for _, name := range s.OrderedTables {
+			if g.inDegree[name] > 0 {
+				cycledTables = append(cycledTables, name)
+			}
+		}
+		return nil, fmt.Errorf("cycle detected in the following tables:\n%s", strings.Join(cycledTables, ", "))
+	}
 
 	return result, nil
 }

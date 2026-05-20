@@ -83,7 +83,7 @@ func main() {
 	}
 
 	if cfg.Mermaid {
-		mmd := generators.GenerateMermaid(sch)
+		mmd := generators.GenerateMermaid(contract)
 		path := filepath.Join(cfg.OutputDir, "schema.mmd")
 		if err := os.WriteFile(path, []byte(mmd), 0644); err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to save mermaid to %s: %v\n", path, err)
