@@ -1,6 +1,6 @@
 package generators
 
- import (
+import (
 	"fmt"
 	"slices"
 	"strings"

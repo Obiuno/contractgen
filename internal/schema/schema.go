@@ -26,19 +26,19 @@ type Column struct {
 
 func BuildSchema(contract parser.Contract) *Schema {
 	schema := &Schema{
-		Tables:  make(map[string]*Table, len(contract.Tables)),
+		Tables:        make(map[string]*Table, len(contract.Tables)),
 		OrderedTables: make([]string, 0, len(contract.Tables)),
-		Version: contract.Version,
+		Version:       contract.Version,
 	}
 
 	for _, table := range contract.Tables {
 		tName := strings.ToLower(table.Name)
 
 		meta := &Table{
-			Columns:    make(map[string]*Column, len(table.Columns)),
+			Columns:        make(map[string]*Column, len(table.Columns)),
 			OrderedColumns: make([]string, 0, len(table.Columns)),
-			PrimaryKey: lowerAll(table.PrimaryKey),
-			Unique:     lowerNested(table.Unique),
+			PrimaryKey:     lowerAll(table.PrimaryKey),
+			Unique:         lowerNested(table.Unique),
 		}
 
 		for _, col := range table.Columns {
@@ -53,7 +53,7 @@ func BuildSchema(contract parser.Contract) *Schema {
 		}
 
 		schema.Tables[tName] = meta
-		schema.OrderedTables =append(schema.OrderedTables, tName)
+		schema.OrderedTables = append(schema.OrderedTables, tName)
 	}
 
 	return schema
