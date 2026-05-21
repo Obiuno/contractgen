@@ -1,0 +1,4 @@
+version: "1
+tables: this is: not: valid: at all
+  : wrong indentation
+    -- nonsense
