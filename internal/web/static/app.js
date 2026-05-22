@@ -9,6 +9,24 @@ import { gfmHeadingId } from "https://cdn.jsdelivr.net/npm/marked-gfm-heading-id
 
 import DOMPurify from "https://cdn.jsdelivr.net/npm/dompurify/+esm";
 
+mermaid.initialize({
+  startOnLoad: false,
+  theme: "base",
+  er: {
+    useMaxWidth: true,
+    entityPadding: 15,
+    diagramPadding: 20,
+  },
+  themeVariables: {
+    primaryColor: "#1a2020",
+    primaryTextColor: "#e0e6e6",
+    primaryBorderColor: "#00d9c0",
+    lineColor: "#00a890",
+  },
+});
+
+console.log('mermaid config:', mermaid.mermaidAPI.getConfig());
+
 marked.use(gfmHeadingId());
 
 document.body.addEventListener("htmx:afterSwap", () => {
@@ -20,4 +38,39 @@ document.body.addEventListener("htmx:afterSwap", () => {
 
     target.innerHTML = DOMPurify.sanitize(marked.parse(src.innerHTML));
   });
+});
+
+function copyToClipboard(button, content) {
+  navigator.clipboard
+    .writeText(content)
+    .then(() => {
+      button.textContent = "Copied!";
+      button.classList.add("success");
+      setTimeout(() => {
+        button.textContent = "Copy";
+        button.classList.remove("success");
+      }, 1500);
+    })
+    .catch(() => {
+      button.textContent = "Failed";
+      setTimeout(() => {
+        button.textContent = "Copy";
+      }, 1500);
+    });
+}
+
+document.body.addEventListener("click", (e) => {
+    if (e.target.matches(".btn-copy")) {
+        const target = document.getElementById(e.target.dataset.target);
+        if (target) copyToClipboard(e.target, target.textContent);
+        return;
+    }
+    
+    if (e.target.matches(".btn-toggle")) {
+        const target = document.getElementById(e.target.dataset.target);
+        if (!target) return;
+        const showingSource = target.classList.toggle("showing-source");
+        e.target.textContent = showingSource ? "Rendered" : "Source";
+        return;
+    }
 });

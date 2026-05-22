@@ -11,10 +11,46 @@ import (
 )
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	if err := IndexTmpl.Execute(w, nil); err != nil {
-		log.Printf("index template: %v", err)
-	}
+    data := struct {
+        Example string
+    }{
+        Example: exampleYAML,
+    }
+    IndexTmpl.Execute(w, data)
 }
+
+const exampleYAML = `version: "1"
+description: "Example yaml"
+tables:
+  - name: users
+    description: "User accounts"
+    columns:
+      - name: id
+        type: uuid
+        constraints: [not_null]
+      - name: email
+        type: varchar
+        constraints: [not_null]
+    primary_key: [id]
+    unique: [[email]]
+
+  - name: posts
+    description: "Blog posts"
+    columns:
+      - name: id
+        type: uuid
+        constraints: [not_null]
+      - name: user_id
+        type: uuid
+        constraints: [not_null]
+        references:
+          table: users
+          column: id
+      - name: title
+        type: varchar
+        constraints: [not_null]
+    primary_key: [id]
+`
 
 func GenerateHandler(w http.ResponseWriter, r *http.Request) {
 	yamlText := r.FormValue("yaml")

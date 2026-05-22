@@ -1,9 +1,41 @@
-<h2>DDL</h2>
-<pre><code class="language-sql">{{.DDL}}</code></pre>
+<div class="panel" data-output="ddl">
+  <header class="panel-header">
+    <h2>DDL</h2>
+    <div class="panel-actions">
+      <button class="btn-copy" data-target="ddl-content">Copy</button>
+    </div>
+  </header>
+  <pre id="ddl-content"><code class="language-sql">{{.DDL}}</code></pre>
+</div>
 
-<h2>Data Dictionary</h2>
-<div class="markdown-output"></div>
-<script type="text/markdown" class="markdown-source">{{.DataDict}}</script>
+<div class="panel" data-output="docs">
+  <header class="panel-header">
+    <h2>Data Dictionary</h2>
+    <div class="panel-actions">
+      <button class="btn-copy" data-target="docs-content">Copy</button>
+      <button class="btn-toggle" data-target="docs-content">Source</button>
+    </div>
+  </header>
+  <div class="markdown-output" id="docs-content"></div>
+  <template class="markdown-source">{{.DataDict}}</template>
+</div>
 
-<h2>ER Diagram</h2>
-<pre class="mermaid">{{.ERD}}</pre>
+<div class="panel" data-output="erd">
+  <header class="panel-header">
+    <h2>ER Diagram</h2>
+    <div class="panel-actions">
+      <button class="btn-copy" data-target="erd-content">Copy</button>
+      <button class="btn-toggle" data-target="erd-content">Source</button>
+    </div>
+  </header>
+  <pre class="mermaid" id="erd-content">{{.ERD}}</pre>
+</div>
+
+<div class="panel" data-output="issues">
+  <header class="panel-header">
+    <h2>Issues</h2>
+  </header>
+  <div class="issues-content">
+    <p class="issues-empty">No validation issues</p>
+  </div>
+</div>
