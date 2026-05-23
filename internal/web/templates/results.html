@@ -2,40 +2,71 @@
   <header class="panel-header">
     <h2>DDL</h2>
     <div class="panel-actions">
-      <button class="btn-copy" data-target="ddl-content">Copy</button>
+      <button class="btn-copy">Copy</button>
     </div>
   </header>
-  <pre id="ddl-content"><code class="language-sql">{{.DDL}}</code></pre>
+  {{if .DDL}}
+  <pre class="output-rendered"><code class="language-sql">{{.DDL}}</code></pre>
+  {{else}}
+  <div class="output-empty">No output generated</div>
+  {{end}}
 </div>
 
 <div class="panel" data-output="docs">
   <header class="panel-header">
     <h2>Data Dictionary</h2>
     <div class="panel-actions">
-      <button class="btn-copy" data-target="docs-content">Copy</button>
-      <button class="btn-toggle" data-target="docs-content">Source</button>
+      <button class="btn-toggle">Source</button>
+      <button class="btn-copy">Copy</button>
     </div>
   </header>
-  <div class="markdown-output" id="docs-content"></div>
-  <template class="markdown-source">{{.DataDict}}</template>
+  {{if .DataDict}}
+  <div class="output-rendered markdown-output"></div>
+  <pre
+    class="output-source"
+  ><code class="language-markdown">{{.DataDict}}</code></pre>
+  {{else}}
+  <div class="output-empty">No output generated</div>
+  {{end}}
 </div>
 
 <div class="panel" data-output="erd">
   <header class="panel-header">
     <h2>ER Diagram</h2>
     <div class="panel-actions">
-      <button class="btn-copy" data-target="erd-content">Copy</button>
-      <button class="btn-toggle" data-target="erd-content">Source</button>
+      <button class="btn-toggle">Source</button>
+      <button class="btn-copy">Copy</button>
     </div>
   </header>
-  <pre class="mermaid" id="erd-content">{{.ERD}}</pre>
+  {{if .ERD}}
+  <pre class="output-rendered mermaid">{{.ERD}}</pre>
+  <pre class="output-source">{{.ERD}}</pre>
+  {{else}}
+  <div class="output-empty">No output generated</div>
+  {{end}}
 </div>
 
 <div class="panel" data-output="issues">
   <header class="panel-header">
     <h2>Issues</h2>
   </header>
+  {{if .Issues}}
+  <ul class="issues-content">
+    {{range .Issues}}
+    <li class="issue issue-{{.Severity}}">
+      <span class="issue-severity">{{.Severity}}</span>
+      {{if .Table}}
+      <span class="issue-location">
+        {{.Table}}{{if .Column}}.{{.Column}}{{end}}
+      </span>
+      {{end}}
+      <span class="issue-message">{{.Message}}</span>
+    </li>
+    {{end}}
+  </ul>
+  {{else}}
   <div class="issues-content">
     <p class="issues-empty">No validation issues</p>
   </div>
+  {{end}}
 </div>

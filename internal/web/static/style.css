@@ -268,6 +268,30 @@ header h1 {
   margin: 0;
 }
 
+/* Source view is hidden by default */
+.output-source {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+  padding: var(--space-lg);
+  overflow: auto;
+  flex: 1;
+  background: var(--code-bg);
+  color: var(--text);
+}
+
+/* When the panel has .showing-source: flip visibility */
+.panel.showing-source .output-rendered {
+  display: none;
+}
+
+.panel.showing-source .output-source {
+  display: block;
+}
+
 /* =========================================
    Code blocks (Prism override)
    ========================================= */
@@ -352,24 +376,79 @@ code {
 
 .mermaid svg {
   max-width: 100%;
-  width: 100% !important; 
+  width: 100% !important;
   height: auto !important;
+}
+
+.panel[data-output="erd"] .output-source {
+    color: var(--accent);
+    background: var(--code-bg);
 }
 
 /* =========================================
    Issues panel
    ========================================= */
-.issues-empty {
-  color: var(--text-muted);
-  font-style: italic;
+.issues-content {
+    list-style: none;
+    padding: var(--space-md) var(--space-lg);
+    margin: 0;
+    overflow: auto;
+    flex: 1;
 }
 
-.issues-content .error {
-  color: var(--danger);
+.issue {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-md);
+    margin-bottom: var(--space-sm);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid;
+    background: var(--surface-2);
+    font-size: 0.875rem;
 }
 
-.issues-content .warning {
-  color: var(--warning);
+.issue-error {
+    border-left-color: var(--danger);
+}
+
+.issue-warning {
+    border-left-color: var(--warning);
+}
+
+.issue-severity {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.issue-error .issue-severity {
+    color: var(--danger);
+}
+
+.issue-warning .issue-severity {
+    color: var(--warning);
+}
+
+.issue-location {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.issue-message {
+    color: var(--text);
+}
+
+.output-empty {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-style: italic;
+    padding: var(--space-lg);
 }
 
 /* =========================================

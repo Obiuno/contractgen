@@ -6,6 +6,7 @@ import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.mi
 
 import { marked } from "https://cdn.jsdelivr.net/npm/marked/+esm";
 import { gfmHeadingId } from "https://cdn.jsdelivr.net/npm/marked-gfm-heading-id/+esm";
+import "https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markdown.min.js/+esm";
 
 import DOMPurify from "https://cdn.jsdelivr.net/npm/dompurify/+esm";
 
@@ -30,14 +31,17 @@ console.log('mermaid config:', mermaid.mermaidAPI.getConfig());
 marked.use(gfmHeadingId());
 
 document.body.addEventListener("htmx:afterSwap", () => {
-  Prism.highlightAll();
-  mermaid.run({ querySelector: ".mermaid" });
-
-  document.querySelectorAll(".markdown-source").forEach((src) => {
-    const target = src.previousElementSibling;
-
-    target.innerHTML = DOMPurify.sanitize(marked.parse(src.innerHTML));
-  });
+    Prism.highlightAll();
+    mermaid.run({ querySelector: ".mermaid" });
+    
+    // Render markdown from each panel's source into its rendered slot
+    document.querySelectorAll(".panel .markdown-output").forEach((target) => {
+        const panel = target.closest(".panel");
+        const source = panel.querySelector(".output-source");
+        if (source) {
+            target.innerHTML = DOMPurify.sanitize(marked.parse(source.textContent));
+        }
+    });
 });
 
 function copyToClipboard(button, content) {
@@ -59,17 +63,19 @@ function copyToClipboard(button, content) {
     });
 }
 
+// copy button event listner
 document.body.addEventListener("click", (e) => {
     if (e.target.matches(".btn-copy")) {
-        const target = document.getElementById(e.target.dataset.target);
-        if (target) copyToClipboard(e.target, target.textContent);
+        const panel = e.target.closest(".panel");
+        // Prefer source, fall back to rendered
+        const sourceEl = panel.querySelector(".output-source") || panel.querySelector(".output-rendered");
+        copyToClipboard(e.target, sourceEl.textContent);
         return;
     }
     
     if (e.target.matches(".btn-toggle")) {
-        const target = document.getElementById(e.target.dataset.target);
-        if (!target) return;
-        const showingSource = target.classList.toggle("showing-source");
+        const panel = e.target.closest(".panel");
+        const showingSource = panel.classList.toggle("showing-source");
         e.target.textContent = showingSource ? "Rendered" : "Source";
         return;
     }
