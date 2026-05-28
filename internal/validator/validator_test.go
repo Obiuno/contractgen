@@ -608,105 +608,103 @@ func TestValidate(t *testing.T) {
 		want     []expectedError
 	}{
 		{
-			name: "multiple validation errors",
+			name: "clean contract produces no errors",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+						{Name: "email", Type: "varchar"},
+					}},
+				},
+			},
+			want: nil,
+		},
+		{
+			name: "identifier error short-circuits other checks",
 			contract: parser.Contract{
 				Tables: []parser.Table{
 					{
-						Name: "customers",
+						Name: "**bad**",
 						Columns: []parser.Column{
-							{Name: "id"},
-							{Name: "id"},
+							{Name: "id", Type: "uuid"},
+							{Name: "id", Type: "uuid"}, // would normally trigger duplicate column
+						},
+					},
+					{
+						Name: "**bad**", // would normally trigger duplicate table
+						Columns: []parser.Column{
+							{Name: "user_id", Type: "uuid", References: &parser.Reference{
+								Table: "ghost", Column: "id", // would normally trigger FK unknown table
+							}},
+						},
+					},
+				},
+			},
+			// Only identifier errors should appear — short-circuit blocks the rest
+			want: []expectedError{
+				{table: "**bad**", messageContains: "identifier"},
+				{table: "**bad**", messageContains: "identifier"},
+			},
+		},
+		{
+			name: "multiple non-identifier errors all surface",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{
+						Name: "users",
+						Columns: []parser.Column{
+							{Name: "id", Type: "uuid"},
+							{Name: "id", Type: "uuid"}, // duplicate column
+						},
+					},
+					{
+						Name: "users", // duplicate table
+						Columns: []parser.Column{
+							{Name: "user_id", Type: "uuid", References: &parser.Reference{
+								Table: "ghost", Column: "id", // FK to unknown table
+							}},
+						},
+					},
+					{
+						Name:       "orders",
+						PrimaryKey: []string{"missing_id"}, // PK to missing column
+						Columns: []parser.Column{
+							{Name: "id", Type: "uuid"},
+						},
+					},
+				},
+			},
+			want: []expectedError{
+				{table: "users", messageContains: "duplicate"},
+				{table: "users", column: "id", messageContains: "duplicate"},
+				{table: "users", column: "user_id", messageContains: "unknown table"},
+				{table: "orders", messageContains: "primary key"},
+			},
+		},
+		{
+			name: "completeness errors surface alongside others",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{
+						Name: "users",
+						Columns: []parser.Column{
+							{Name: "id"}, // missing type
+							{Name: "email", Type: "varchar"},
 						},
 					},
 					{
 						Name: "orders",
 						Columns: []parser.Column{
-							{
-								Name: "customer_id",
-								References: &parser.Reference{
-									Table:  "customers",
-									Column: "customer_id",
-								},
-							},
-						},
-					},
-					{
-						Name: "orders_items",
-						Columns: []parser.Column{
-							{
-								Name: "order_id",
-								References: &parser.Reference{
-									Table:  "account",
-									Column: "id",
-								},
-							},
-							{
-								Name: "customer_id",
-								References: &parser.Reference{
-									Table:  "customers",
-									Column: "id",
-								},
-							},
-						},
-					},
-					{
-						Name: "customers",
-						Columns: []parser.Column{
-							{Name: "id"},
+							{Name: "user_id", Type: "uuid", References: &parser.Reference{
+								Table: "users", Column: "ghost", // FK to unknown column
+							}},
 						},
 					},
 				},
 			},
 			want: []expectedError{
-				{
-					table: "customers",
-				},
-				{
-					table:  "customers",
-					column: "id",
-				},
-				{
-					table:           "orders",
-					column:          "customer_id",
-					messageContains: "unknown column",
-				},
-				{
-					table:           "orders_items",
-					column:          "order_id",
-					messageContains: "unknown table",
-				},
-			},
-		},
-		{
-			name: "clean contract produces no errors",
-			contract: parser.Contract{
-				Tables: []parser.Table{
-					{
-						Name: "customers",
-						Columns: []parser.Column{
-							{Name: "id"},
-							{Name: "email"},
-						},
-					},
-				},
-			},
-			want: []expectedError{},
-		},
-		{
-			name: "invalid identifier short-circuits other checks",
-			contract: parser.Contract{
-				Tables: []parser.Table{
-					{
-						Name: "**bad**", 
-						Columns: []parser.Column{
-							{Name: "id"},
-							{Name: "id"},
-						},
-					},
-				},
-			},
-			want: []expectedError{
-				{table: "**bad**", messageContains: "identifier"},
+				{table: "users", column: "id", messageContains: "type"},
+				{table: "orders", column: "user_id", messageContains: "unknown column"},
 			},
 		},
 	}
@@ -726,7 +724,6 @@ func TestValidate(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestValidationErrorMessage(t *testing.T) {
@@ -1053,6 +1050,86 @@ func TestCheckValidCharacters(t *testing.T) {
 				{table: "Foo", column: "**bazqux**", messageContains: "identifier"},
 			},
 		},
+		// Reference fields with bad characters
+		{
+			name: "reference table with bad characters",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+					}},
+					{Name: "orders", Columns: []parser.Column{
+						{Name: "user_id", Type: "uuid", References: &parser.Reference{Table: "**users**", Column: "id"}},
+					}},
+				},
+			},
+			want: []expectedError{
+				{table: "orders", column: "user_id", messageContains: "reference"},
+			},
+		},
+		{
+			name: "reference column with bad characters",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+					}},
+					{Name: "orders", Columns: []parser.Column{
+						{Name: "user_id", Type: "uuid", References: &parser.Reference{Table: "users", Column: "**id**"}},
+					}},
+				},
+			},
+			want: []expectedError{
+				{table: "orders", column: "user_id", messageContains: "reference"},
+			},
+		},
+
+		// Primary key with bad characters
+		{
+			name: "primary key entry with bad characters",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", PrimaryKey: []string{"**id**"}, Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+					}},
+				},
+			},
+			want: []expectedError{
+				{table: "users", messageContains: "primary key"},
+			},
+		},
+
+		// Unique constraint with bad characters
+		{
+			name: "unique constraint with bad characters",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", Unique: [][]string{{"**email**"}}, Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+						{Name: "email", Type: "varchar"},
+					}},
+				},
+			},
+			want: []expectedError{
+				{table: "users", messageContains: "unique"},
+			},
+		},
+
+		// Multi-column unique, one entry with bad characters
+		{
+			name: "multi-column unique with one bad entry",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", Unique: [][]string{{"first_name", "**last_name**"}}, Columns: []parser.Column{
+						{Name: "first_name", Type: "varchar"},
+						{Name: "last_name", Type: "varchar"},
+					}},
+				},
+			},
+			want: []expectedError{
+				{table: "users", messageContains: "unique"},
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -1136,13 +1213,13 @@ func TestSeverityPerCheck(t *testing.T) {
 }
 
 func TestPartition_UnknownSeverity(t *testing.T) {
-    issues := []ValidationIssue{
-        {Severity: Severity(99), Message: "unknown"},
-    }
-    errs, warns := Partition(issues)
-    if len(errs) != 0 || len(warns) != 0 {
-        t.Errorf("expected unknown severity to be dropped, got %d errors and %d warnings", len(errs), len(warns))
-    }
+	issues := []ValidationIssue{
+		{Severity: Severity(99), Message: "unknown"},
+	}
+	errs, warns := Partition(issues)
+	if len(errs) != 0 || len(warns) != 0 {
+		t.Errorf("expected unknown severity to be dropped, got %d errors and %d warnings", len(errs), len(warns))
+	}
 }
 
 func TestPartition(t *testing.T) {
@@ -1155,5 +1232,379 @@ func TestPartition(t *testing.T) {
 	errs, warns := Partition(cases)
 	if len(errs) != 2 || len(warns) != 2 {
 		t.Errorf("got %d errors and %d warnings, expected 2 and 2", len(errs), len(warns))
+	}
+}
+
+func TestCheckCompleteness(t *testing.T) {
+	cases := []struct {
+		name     string
+		contract parser.Contract
+		want     []expectedError
+	}{
+		// Valid
+		{
+			name: "valid table",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", Columns: []parser.Column{{Name: "id", Type: "uuid"}}},
+				},
+			},
+			want: nil,
+		},
+		{
+			name: "valid with complete reference",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "orders", Columns: []parser.Column{
+						{Name: "user_id", Type: "uuid", References: &parser.Reference{Table: "users", Column: "id"}},
+					}},
+				},
+			},
+			want: nil,
+		},
+		{
+			name: "empty optional collections are fine",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", PrimaryKey: []string{}, Unique: [][]string{}, Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+					}},
+				},
+			},
+			want: nil,
+		},
+		// Invalid: table level
+		{
+			name: "table with no columns",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", Columns: []parser.Column{}},
+				},
+			},
+			want: []expectedError{
+				{table: "users", messageContains: "no columns"},
+			},
+		},
+
+		// Invalid: column level
+		{
+			name: "column missing type",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", Columns: []parser.Column{{Name: "id"}}},
+				},
+			},
+			want: []expectedError{
+				{table: "users", column: "id", messageContains: "type"},
+			},
+		},
+		{
+			name: "column missing type with whitespace",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", Columns: []parser.Column{{Name: "id", Type: "   "}}},
+				},
+			},
+			want: []expectedError{
+				{table: "users", column: "id", messageContains: "type"},
+			},
+		},
+
+		// Invalid: reference block
+		{
+			name: "reference missing table",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "orders", Columns: []parser.Column{
+						{Name: "user_id", Type: "uuid", References: &parser.Reference{Column: "id"}},
+					}},
+				},
+			},
+			want: []expectedError{
+				{table: "orders", column: "user_id", messageContains: "table"},
+			},
+		},
+		{
+			name: "reference missing column",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "orders", Columns: []parser.Column{
+						{Name: "user_id", Type: "uuid", References: &parser.Reference{Table: "users"}},
+					}},
+				},
+			},
+			want: []expectedError{
+				{table: "orders", column: "user_id", messageContains: "column"},
+			},
+		},
+		{
+			name: "reference missing both",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "orders", Columns: []parser.Column{
+						{Name: "user_id", Type: "uuid", References: &parser.Reference{}},
+					}},
+				},
+			},
+			want: []expectedError{
+				{table: "orders", column: "user_id", messageContains: "table"},
+				{table: "orders", column: "user_id", messageContains: "column"},
+			},
+		},
+
+		// Multi-error scenarios
+		{
+			name: "multiple columns, only one missing type",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+						{Name: "email"},
+						{Name: "name", Type: "varchar"},
+					}},
+				},
+			},
+			want: []expectedError{
+				{table: "users", column: "email", messageContains: "type"},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			errs := checkCompleteness(tc.contract)
+			if len(errs) != len(tc.want) {
+				t.Errorf("got %d errors, want %d: %v", len(errs), len(tc.want), errs)
+				return
+			}
+			for _, exp := range tc.want {
+				if !containsErr(errs, exp.table, exp.column, exp.messageContains) {
+					t.Errorf("expected error for %s.%s containing %q not found, got %v",
+						exp.table, exp.column, exp.messageContains, errs)
+				}
+			}
+		})
+	}
+}
+
+func TestCheckConstraintReferences(t *testing.T) {
+	cases := []struct {
+		name     string
+		contract parser.Contract
+		want     []expectedError
+	}{
+		// Valid
+		{
+			name: "valid single-column PK",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", PrimaryKey: []string{"id"}, Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+					}},
+				},
+			},
+			want: nil,
+		},
+		{
+			name: "valid multi-column PK",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "user_roles", PrimaryKey: []string{"user_id", "role_id"}, Columns: []parser.Column{
+						{Name: "user_id", Type: "uuid"},
+						{Name: "role_id", Type: "uuid"},
+					}},
+				},
+			},
+			want: nil,
+		},
+		{
+			name: "valid unique constraint",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", Unique: [][]string{{"email"}}, Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+						{Name: "email", Type: "varchar"},
+					}},
+				},
+			},
+			want: nil,
+		},
+		{
+			name: "valid multi-column unique",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", Unique: [][]string{{"first_name", "last_name"}}, Columns: []parser.Column{
+						{Name: "first_name", Type: "varchar"},
+						{Name: "last_name", Type: "varchar"},
+					}},
+				},
+			},
+			want: nil,
+		},
+		{
+			name: "column in both PK and unique is fine",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", PrimaryKey: []string{"id"}, Unique: [][]string{{"id"}}, Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+					}},
+				},
+			},
+			want: nil,
+		},
+		{
+			name: "case insensitive matching",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", PrimaryKey: []string{"ID"}, Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+					}},
+				},
+			},
+			want: nil,
+		},
+		{
+			name: "no PK or unique is fine",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "log_entries", Columns: []parser.Column{
+						{Name: "message", Type: "text"},
+					}},
+				},
+			},
+			want: nil,
+		},
+
+		// Invalid
+		{
+			name: "PK references unknown column",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", PrimaryKey: []string{"missing_id"}, Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+					}},
+				},
+			},
+			want: []expectedError{
+				{table: "users", messageContains: "primary key"},
+			},
+		},
+		{
+			name: "multi-column PK with one missing",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "user_roles", PrimaryKey: []string{"user_id", "missing_role"}, Columns: []parser.Column{
+						{Name: "user_id", Type: "uuid"},
+					}},
+				},
+			},
+			want: []expectedError{
+				{table: "user_roles", messageContains: "primary key"},
+			},
+		},
+		{
+			name: "unique constraint references unknown column",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", Unique: [][]string{{"missing_field"}}, Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+					}},
+				},
+			},
+			want: []expectedError{
+				{table: "users", messageContains: "unique"},
+			},
+		},
+		{
+			name: "multi-column unique with one missing",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", Unique: [][]string{{"first_name", "missing_last"}}, Columns: []parser.Column{
+						{Name: "first_name", Type: "varchar"},
+					}},
+				},
+			},
+			want: []expectedError{
+				{table: "users", messageContains: "unique"},
+			},
+		},
+		{
+			name: "multiple unique constraints, one invalid",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", Unique: [][]string{{"email"}, {"missing"}}, Columns: []parser.Column{
+						{Name: "email", Type: "varchar"},
+					}},
+				},
+			},
+			want: []expectedError{
+				{table: "users", messageContains: "unique"},
+			},
+		},
+		{
+			name: "PK and unique both invalid",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", PrimaryKey: []string{"missing_pk"}, Unique: [][]string{{"missing_uq"}}, Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+					}},
+				},
+			},
+			want: []expectedError{
+				{table: "users", messageContains: "primary key"},
+				{table: "users", messageContains: "unique"},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			errs := checkConstraintReferences(tc.contract)
+			if len(errs) != len(tc.want) {
+				t.Errorf("got %d errors, want %d: %v", len(errs), len(tc.want), errs)
+				return
+			}
+			for _, exp := range tc.want {
+				if !containsErr(errs, exp.table, exp.column, exp.messageContains) {
+					t.Errorf("expected error for %s.%s containing %q not found, got %v",
+						exp.table, exp.column, exp.messageContains, errs)
+				}
+			}
+		})
+	}
+}
+
+func TestCheckContractStructure(t *testing.T) {
+	cases := []struct {
+		name     string
+		contract parser.Contract
+		wantErrs int
+	}{
+		{
+			name:     "empty contract",
+			contract: parser.Contract{Tables: []parser.Table{}},
+			wantErrs: 1,
+		},
+		{
+			name:     "nil tables",
+			contract: parser.Contract{},
+			wantErrs: 1,
+		},
+		{
+			name: "contract with tables",
+			contract: parser.Contract{
+				Tables: []parser.Table{{Name: "users"}},
+			},
+			wantErrs: 0,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			errs := checkContractStructure(tc.contract)
+			if len(errs) != tc.wantErrs {
+				t.Errorf("got %d errors, want %d: %v", len(errs), tc.wantErrs, errs)
+			}
+		})
 	}
 }

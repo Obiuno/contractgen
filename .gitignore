@@ -1,6 +1,7 @@
 # Python junk
 __pycache__/
 *.pyc
+tmp/
 
 # Editor junk
 .vscode/
@@ -8,6 +9,7 @@ __pycache__/
 # System junk
 .DS_Store
 Thumbs.db
+build-errors.log
 
 # dev stuff
 notes.md

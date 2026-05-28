@@ -1,0 +1,14 @@
+version: "1"
+tables:
+  - name: users
+    columns:
+      - name: id
+        type: uuid
+    primary_key: [id]
+  - name: accounts
+    columns:
+      - name: user_id
+        type: uuid
+        references:
+          table: users
+          column: id

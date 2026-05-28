@@ -1,9 +1,72 @@
-<h2>DDL</h2>
-<pre><code class="language-sql">{{.DDL}}</code></pre>
+<div class="panel" data-output="ddl">
+  <header class="panel-header">
+    <h2>DDL</h2>
+    <div class="panel-actions">
+      <button class="btn-copy">Copy</button>
+    </div>
+  </header>
+  {{if .DDL}}
+  <pre class="output-rendered"><code class="language-sql">{{.DDL}}</code></pre>
+  {{else}}
+  <div class="output-empty">No output generated</div>
+  {{end}}
+</div>
 
-<h2>Data Dictionary</h2>
-<div class="markdown-output"></div>
-<script type="text/markdown" class="markdown-source">{{.DataDict}}</script>
+<div class="panel" data-output="docs">
+  <header class="panel-header">
+    <h2>Data Dictionary</h2>
+    <div class="panel-actions">
+      <button class="btn-toggle">Source</button>
+      <button class="btn-copy">Copy</button>
+    </div>
+  </header>
+  {{if .DataDict}}
+  <div class="output-rendered markdown-output"></div>
+  <pre
+    class="output-source"
+  ><code class="language-markdown">{{.DataDict}}</code></pre>
+  {{else}}
+  <div class="output-empty">No output generated</div>
+  {{end}}
+</div>
 
-<h2>ER Diagram</h2>
-<pre class="mermaid">{{.ERD}}</pre>
+<div class="panel" data-output="erd">
+  <header class="panel-header">
+    <h2>ER Diagram</h2>
+    <div class="panel-actions">
+      <button class="btn-toggle">Source</button>
+      <button class="btn-copy">Copy</button>
+    </div>
+  </header>
+  {{if .ERD}}
+  <pre class="output-rendered mermaid">{{.ERD}}</pre>
+  <pre class="output-source">{{.ERD}}</pre>
+  {{else}}
+  <div class="output-empty">No output generated</div>
+  {{end}}
+</div>
+
+<div class="panel" data-output="issues">
+  <header class="panel-header">
+    <h2>Issues</h2>
+  </header>
+  {{if .Issues}}
+  <ul class="issues-content">
+    {{range .Issues}}
+    <li class="issue issue-{{.Severity}}">
+      <span class="issue-severity">{{.Severity}}</span>
+      {{if .Table}}
+      <span class="issue-location">
+        {{.Table}}{{if .Column}}.{{.Column}}{{end}}
+      </span>
+      {{end}}
+      <span class="issue-message">{{.Message}}</span>
+    </li>
+    {{end}}
+  </ul>
+  {{else}}
+  <div class="issues-content">
+    <p class="issues-empty">No validation issues</p>
+  </div>
+  {{end}}
+</div>

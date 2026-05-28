@@ -1,0 +1,9 @@
+version: "1"
+tables:
+  - name: orders
+    columns:
+      - name: customer_id
+        type: uuid
+        references:
+          table: customers
+          column: id

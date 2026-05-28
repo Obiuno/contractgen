@@ -1,0 +1,7 @@
+version: "1"
+tables:
+  - name: "**bad**"
+    columns:
+      - name: id
+        type: uuid
+    primary_key: [id]
