@@ -12,7 +12,6 @@ Thumbs.db
 build-errors.log
 
 # dev stuff
-notes.md
 *.sql
 
 # Binaries
