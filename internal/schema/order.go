@@ -32,6 +32,12 @@ func (s *Schema) buildGraph() *graph {
 				continue
 			}
 			refTable := strings.ToLower(col.References.Table)
+
+			// skip references to no-existent tables
+			if _, exists := s.Tables[refTable]; !exists {
+            continue
+			}
+			
 			// edge refTable -> name
 			g.adj[refTable] = append(g.adj[refTable], name)
 			g.inDegree[name]++
@@ -48,20 +54,40 @@ func (s *Schema) TopologicalOrder() ([]string, error) {
 	// Kahn's algo
 	g := s.buildGraph()
 
-	queue := []string{}
+	order, unprocessed := g.kahn(s.OrderedTables)
+	if len(unprocessed) > 0 {
+		return nil, fmt.Errorf("Cycle detected %s", strings.Join(unprocessed, ", "))
+	}
+
+	return order, nil
+}
+
+func (s *Schema) DetectCycles() ([]string) {
+	g := s.buildGraph()
+	_, unprocessed := g.kahn(s.OrderedTables)
+	return unprocessed
+}
+
+// kahn's externally for topological order and cycle detection
+// if unprocessed is empty, the order is complete i.e. there are no cycles
+func (g *graph) kahn(orderedNodes []string) (order, unprocessed []string) {
+
+	n := len(orderedNodes)
+    queue := make([]string, 0, n)
+    order = make([]string, 0, n)
+    unprocessed = make([]string, 0, n)
+
 	// fnd nodes with inDegree 0 and add to queue
-	for _, name := range s.OrderedTables {
+	for _, name := range orderedNodes {
 		if g.inDegree[name] == 0 {
 			queue = append(queue, name)
 		}
 	}
 
-	result := []string{}
-	// look at queue and pop first element and add to result
 	for len(queue) > 0 {
 		current := queue[0]
 		queue = queue[1:]
-		result = append(result, current)
+		order = append(order, current)
 		// for each table that depends on the popped item reduce inDegree
 
 		for _, neighbor := range g.adj[current] {
@@ -71,20 +97,14 @@ func (s *Schema) TopologicalOrder() ([]string, error) {
 				queue = append(queue, neighbor)
 			}
 		}
-
 	}
 
-	// check length of result against number of tables for cycles
-	// collect tables and return error
-	if len(result) != len(s.Tables) {
-		var cycledTables []string
-		for _, name := range s.OrderedTables {
-			if g.inDegree[name] > 0 {
-				cycledTables = append(cycledTables, name)
-			}
+	for _, name := range orderedNodes {
+		if g.inDegree[name] > 0 {
+			unprocessed = append(unprocessed, name)
 		}
-		return nil, fmt.Errorf("cycle detected in the following tables:\n%s", strings.Join(cycledTables, ", "))
 	}
 
-	return result, nil
+	return order, unprocessed
+
 }

@@ -5,6 +5,7 @@ tmp/
 
 # Editor junk
 .vscode/
+.editorconfig
 
 # System junk
 .DS_Store

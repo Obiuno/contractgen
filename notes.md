@@ -220,6 +220,26 @@ Read existing Postgres database, produce a YAML contract matching its schema.
 - Returns *Schema (existing type)
 - CLI: `cgen introspect --db postgres://... --output contract.yaml`
 
+## v1.1 headline feature: Live validation
+
+Add continuous validation as the user types, similar to IDE linting.
+
+### Implementation
+- New endpoint: `POST /validate` returning issues without generation
+- HTMX on textarea: `hx-post="/validate" hx-trigger="keyup changed delay:500ms"`
+- Generate button disabled when errors exist
+- Generate endpoint still validates server-side (defence in depth)
+
+### Why
+- Tighter feedback loop for user iterating on YAML
+- "Soft linting" — same pattern as IDE error highlighting
+- Blocks generation when state is invalid (no wasted generator runs)
+
+### Blog post angle
+"Adding live validation to ContractGen: how the tiered validator pattern made
+this easy" — leveraging the architectural work in v1 to ship a UX improvement
+in v1.1.
+
 cli commands
 ```bash
 # Defualt behaviour - generate all 3
