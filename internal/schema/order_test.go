@@ -250,3 +250,79 @@ func TestTopologicalOrderDeterminism(t *testing.T) {
 	}
 
 }
+
+func TestDetectCycles(t *testing.T) {
+    cases := []struct {
+        name      string
+        schema    *Schema
+        wantCycle []string
+    }{
+        {
+            name:      "empty schema",
+            schema:    &Schema{},
+            wantCycle: nil,
+        },
+        {
+            name: "no cycles",
+            schema: makeSchema(
+                tableDef{name: "customers", columns: []columnDef{{name: "id"}}},
+                tableDef{name: "orders", columns: []columnDef{
+                    {name: "id"},
+                    {name: "customer_id", refTable: "customers", refColumn: "id"},
+                }},
+            ),
+            wantCycle: nil,
+        },
+        {
+            name: "self-reference",
+            schema: makeSchema(
+                tableDef{name: "employee", columns: []columnDef{
+                    {name: "id"},
+                    {name: "manager_id", refTable: "employee", refColumn: "id"},
+                }},
+            ),
+            wantCycle: []string{"employee"},
+        },
+        {
+            name: "two-table cycle",
+            schema: makeSchema(
+                tableDef{name: "a", columns: []columnDef{
+                    {name: "id"},
+                    {name: "b_id", refTable: "b", refColumn: "id"},
+                }},
+                tableDef{name: "b", columns: []columnDef{
+                    {name: "id"},
+                    {name: "a_id", refTable: "a", refColumn: "id"},
+                }},
+            ),
+            wantCycle: []string{"a", "b"},
+        },
+        {
+            name: "broken FK reference is not a cycle",
+            schema: makeSchema(
+                tableDef{name: "orders", columns: []columnDef{
+                    {name: "id"},
+                    {name: "customer_id", refTable: "nonexistent", refColumn: "id"},
+                }},
+            ),
+            wantCycle: nil,
+        },
+    }
+
+    for _, tc := range cases {
+        t.Run(tc.name, func(t *testing.T) {
+            cycled := tc.schema.DetectCycles()
+            
+            if len(cycled) != len(tc.wantCycle) {
+                t.Errorf("got cycled tables %v, want %v", cycled, tc.wantCycle)
+                return
+            }
+            
+            for _, expected := range tc.wantCycle {
+                if !slices.Contains(cycled, expected) {
+                    t.Errorf("expected %q in cycled tables, got %v", expected, cycled)
+                }
+            }
+        })
+    }
+}

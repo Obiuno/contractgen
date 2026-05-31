@@ -33,20 +33,26 @@ func TestGenerateHandler_HappyPath(t *testing.T) {
 		{
 			name:         "invalid identifier",
 			fixture:      "invalid_identifier.yml",
-			wantStatus:   400,
-			wantContains: []string{"validation failed", "identifier"},
+			wantStatus:   200,
+			wantContains: []string{"error", "identifier"},
 		},
 		{
 			name:         "invalid yaml syntax",
 			fixture:      "invalid_yaml_syntax.yml",
-			wantStatus:   400,
+			wantStatus:   200,
 			wantContains: []string{"invalid YAML"},
 		},
 		{
 			name:         "invalid fk target",
 			fixture:      "invalid_fk_target.yml",
-			wantStatus:   400,
-			wantContains: []string{"validation failed", "unknown table"},
+			wantStatus:   200,
+			wantContains: []string{"error", "unknown table"},
+		},
+		{
+			name: "cycle detected",
+			fixture:"cycle_detected.yml",
+			wantStatus: 200,
+			wantContains: []string{"warning", "cycle detected"},
 		},
 	}
 

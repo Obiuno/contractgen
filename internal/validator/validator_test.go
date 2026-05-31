@@ -707,6 +707,91 @@ func TestValidate(t *testing.T) {
 				{table: "orders", column: "user_id", messageContains: "unknown column"},
 			},
 		},
+		{
+			name: "fk cycle produces warning alongside errors",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "a", Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+						{Name: "b_id", Type: "uuid", References: &parser.Reference{Table: "b", Column: "id"}},
+					}},
+					{Name: "b", Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+						{Name: "a_id", Type: "uuid", References: &parser.Reference{Table: "a", Column: "id"}},
+					}},
+				},
+			},
+			want: []expectedError{
+				{messageContains: "cycle"},
+			},
+		},
+		{
+			name: "warnings surface alongside successful generation",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "a", Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+						{Name: "b_id", Type: "uuid", References: &parser.Reference{Table: "b", Column: "id"}},
+					}},
+					{Name: "b", Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+						{Name: "a_id", Type: "uuid", References: &parser.Reference{Table: "a", Column: "id"}},
+					}},
+				},
+			},
+			want: []expectedError{
+				{messageContains: "cycle"},
+			},
+		},
+		{
+			name: "tier-1 errors hide tier-2 errors",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "**bad**", Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+						{Name: "id", Type: "uuid"}, // duplicate column would normally be tier-2 error
+					}},
+				},
+			},
+			want: []expectedError{
+				{table: "**bad**", messageContains: "identifier"},
+				// duplicate column NOT reported — tier-1 short-circuits tier-2
+			},
+		},
+		{
+			name: "tier-2 errors hide tier-3 cycle warning",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "a", Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+						{Name: "id", Type: "uuid"}, // duplicate column (tier-2 error)
+						{Name: "b_id", Type: "uuid", References: &parser.Reference{Table: "b", Column: "id"}},
+					}},
+					{Name: "b", Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+						{Name: "a_id", Type: "uuid", References: &parser.Reference{Table: "a", Column: "id"}},
+					}},
+				},
+			},
+			want: []expectedError{
+				{table: "a", column: "id", messageContains: "duplicate"},
+				// cycle NOT reported — tier-2 short-circuits tier-3
+			},
+		},
+		{
+			name: "clean contract with cycle produces only warning",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "employees", Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+						{Name: "manager_id", Type: "uuid", References: &parser.Reference{Table: "employees", Column: "id"}},
+					}},
+				},
+			},
+			want: []expectedError{
+				{messageContains: "cycle"},
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -1604,6 +1689,75 @@ func TestCheckContractStructure(t *testing.T) {
 			errs := checkContractStructure(tc.contract)
 			if len(errs) != tc.wantErrs {
 				t.Errorf("got %d errors, want %d: %v", len(errs), tc.wantErrs, errs)
+			}
+		})
+	}
+}
+
+func TestCheckFKCycles(t *testing.T) {
+	cases := []struct {
+		name        string
+		contract    parser.Contract
+		wantWarning bool
+	}{
+		{
+			name: "no cycles",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "users", Columns: []parser.Column{{Name: "id", Type: "uuid"}}},
+					{Name: "posts", Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+						{Name: "user_id", Type: "uuid", References: &parser.Reference{Table: "users", Column: "id"}},
+					}},
+				},
+			},
+			wantWarning: false,
+		},
+		{
+			name: "self-reference produces warning",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "employees", Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+						{Name: "manager_id", Type: "uuid", References: &parser.Reference{Table: "employees", Column: "id"}},
+					}},
+				},
+			},
+			wantWarning: true,
+		},
+		{
+			name: "two-table cycle produces warning",
+			contract: parser.Contract{
+				Tables: []parser.Table{
+					{Name: "a", Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+						{Name: "b_id", Type: "uuid", References: &parser.Reference{Table: "b", Column: "id"}},
+					}},
+					{Name: "b", Columns: []parser.Column{
+						{Name: "id", Type: "uuid"},
+						{Name: "a_id", Type: "uuid", References: &parser.Reference{Table: "a", Column: "id"}},
+					}},
+				},
+			},
+			wantWarning: true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			issues := checkFKCycles(tc.contract)
+
+			if tc.wantWarning && len(issues) == 0 {
+				t.Errorf("expected warning, got none")
+			}
+			if !tc.wantWarning && len(issues) != 0 {
+				t.Errorf("expected no issues, got %v", issues)
+			}
+
+			for _, issue := range issues {
+				if issue.Severity != SeverityWarning {
+					t.Errorf("expected warning severity, got %v", issue.Severity)
+				}
 			}
 		})
 	}

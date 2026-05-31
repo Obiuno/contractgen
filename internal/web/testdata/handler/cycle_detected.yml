@@ -1,0 +1,10 @@
+version: "1"
+tables:
+  - name: users
+    columns:
+      - name: id
+        type: uuid
+        references:
+          table: users
+          column: id
+    primary_key: [id]

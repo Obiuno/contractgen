@@ -11,37 +11,39 @@ import "https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markdown.mi
 import DOMPurify from "https://cdn.jsdelivr.net/npm/dompurify/+esm";
 
 mermaid.initialize({
-  startOnLoad: false,
-  theme: "base",
-  er: {
-    useMaxWidth: true,
-    entityPadding: 15,
-    diagramPadding: 20,
-  },
+  startOnLoad: true,
+  theme: "dark",
   themeVariables: {
-    primaryColor: "#1a2020",
-    primaryTextColor: "#e0e6e6",
-    primaryBorderColor: "#00d9c0",
+    background: "#0d1117",
+    primaryColor: "#161b22",
+    primaryBorderColor: "#30363d",
     lineColor: "#00a890",
+    primaryTextColor: "#ffffff",
+    textColor: "#e6edf3",
+
+    er: {
+      attributeBackgroundOdd: "#161b22",
+      attributeBackgroundEven: "#161b22",
+    },
   },
 });
 
-console.log('mermaid config:', mermaid.mermaidAPI.getConfig());
+//console.log("mermaid config:", mermaid.mermaidAPI.getConfig());
 
 marked.use(gfmHeadingId());
 
 document.body.addEventListener("htmx:afterSwap", () => {
-    Prism.highlightAll();
-    mermaid.run({ querySelector: ".mermaid" });
-    
-    // Render markdown from each panel's source into its rendered slot
-    document.querySelectorAll(".panel .markdown-output").forEach((target) => {
-        const panel = target.closest(".panel");
-        const source = panel.querySelector(".output-source");
-        if (source) {
-            target.innerHTML = DOMPurify.sanitize(marked.parse(source.textContent));
-        }
-    });
+  Prism.highlightAll();
+  mermaid.run({ querySelector: ".mermaid" });
+
+  // Render markdown from each panel's source into its rendered slot
+  document.querySelectorAll(".panel .markdown-output").forEach((target) => {
+    const panel = target.closest(".panel");
+    const source = panel.querySelector(".output-source");
+    if (source) {
+      target.innerHTML = DOMPurify.sanitize(marked.parse(source.textContent));
+    }
+  });
 });
 
 function copyToClipboard(button, content) {
@@ -65,18 +67,20 @@ function copyToClipboard(button, content) {
 
 // copy button event listner
 document.body.addEventListener("click", (e) => {
-    if (e.target.matches(".btn-copy")) {
-        const panel = e.target.closest(".panel");
-        // Prefer source, fall back to rendered
-        const sourceEl = panel.querySelector(".output-source") || panel.querySelector(".output-rendered");
-        copyToClipboard(e.target, sourceEl.textContent);
-        return;
-    }
-    
-    if (e.target.matches(".btn-toggle")) {
-        const panel = e.target.closest(".panel");
-        const showingSource = panel.classList.toggle("showing-source");
-        e.target.textContent = showingSource ? "Rendered" : "Source";
-        return;
-    }
+  if (e.target.matches(".btn-copy")) {
+    const panel = e.target.closest(".panel");
+    // Prefer source, fall back to rendered
+    const sourceEl =
+      panel.querySelector(".output-source") ||
+      panel.querySelector(".output-rendered");
+    copyToClipboard(e.target, sourceEl.textContent);
+    return;
+  }
+
+  if (e.target.matches(".btn-toggle")) {
+    const panel = e.target.closest(".panel");
+    const showingSource = panel.classList.toggle("showing-source");
+    e.target.textContent = showingSource ? "Rendered" : "Source";
+    return;
+  }
 });

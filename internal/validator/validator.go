@@ -2,6 +2,7 @@ package validator
 
 import (
 	"contractgen/internal/parser"
+	"contractgen/internal/schema"
 	"fmt"
 	"log"
 	"regexp"
@@ -61,22 +62,33 @@ func Partition(issues []ValidationIssue) (errs, warnings []ValidationIssue) {
 
 func Validate(contract parser.Contract) []ValidationIssue {
 
-	if errs := checkContractStructure(contract); len(errs) > 0 {
-		return errs
+	// Tier 1: contract is well-formed
+	var contractErrs []ValidationIssue
+	contractErrs = append(contractErrs, checkContractStructure(contract)...)
+	contractErrs = append(contractErrs, checkValidCharacters(contract)...)
+	if len(contractErrs) > 0 {
+		return contractErrs
 	}
 
-	if errs := checkValidCharacters(contract); len(errs) > 0 {
-		return errs
+	// Tier 2: contract maps to a valid schema
+	var schemaErrs []ValidationIssue
+	schemaErrs = append(schemaErrs, checkCompleteness(contract)...)
+	schemaErrs = append(schemaErrs, checkDuplicateTables(contract)...)
+	schemaErrs = append(schemaErrs, checkDuplicateColumns(contract)...)
+	schemaErrs = append(schemaErrs, checkForeignKeys(contract)...)
+	schemaErrs = append(schemaErrs, checkConstraintReferences(contract)...)
+	if len(schemaErrs) > 0 {
+		return schemaErrs
 	}
-	var errs []ValidationIssue
 
-	errs = append(errs, checkCompleteness(contract)...)
-	errs = append(errs, checkDuplicateTables(contract)...)
-	errs = append(errs, checkDuplicateColumns(contract)...)
-	errs = append(errs, checkForeignKeys(contract)...)
-	errs = append(errs, checkConstraintReferences(contract)...)
+	// Tier 3: generator-specific concerns
+	var generatorErrs []ValidationIssue
+	generatorErrs = append(generatorErrs, checkFKCycles(contract)...)
+	if len(generatorErrs) > 0 {
+		return generatorErrs
+	}
 
-	return errs
+	return nil
 }
 
 var identRegex = regexp.MustCompile(`^[a-z_][a-z0-9_]*$`)
@@ -370,4 +382,14 @@ func checkForeignKeys(contract parser.Contract) []ValidationIssue {
 	}
 
 	return errs
+}
+
+func checkFKCycles(contract parser.Contract) []ValidationIssue {
+	if cycled := schema.BuildSchema(contract).DetectCycles(); len(cycled) != 0 {
+		return []ValidationIssue{{
+			Severity: SeverityWarning,
+			Message:  fmt.Sprintf("foreign key cycle detected involving: %s", strings.Join(cycled, ", ")),
+		}}
+	}
+	return nil
 }
