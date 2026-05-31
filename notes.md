@@ -276,21 +276,23 @@ go build -o cgen.exe ./cmd/cgen
 
 ```bash
 # clean up
- rm schema.sql schema.md schema.json
- ```
+rm schema.sql schema.md schema.json
+```
 
- testing 
- ```bash
-  go test -coverprofile=coverage.out ./internal/schema && go tool cover -html=coverage.out
-  ```
-  ```bash
+testing
+
+```bash
+go test -coverprofile=coverage.out ./internal/schema && go tool cover -html=coverage.out
+```
+
+```bash
 go test -v ./internal/schema
-  ```
+```
 
  standard flow
  yaml -> parse -> normalise -> validate ->  build schema -> (topo ->) generator 
 
- ## Try these examples
+## Try these examples
 
 The repo includes three contracts you can run:
 
