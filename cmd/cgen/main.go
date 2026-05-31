@@ -5,13 +5,11 @@ import (
 	"contractgen/internal/generators"
 	"contractgen/internal/normalise"
 	"contractgen/internal/parser"
-	"contractgen/internal/schema"
 	"contractgen/internal/validator"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 func main() {
@@ -34,21 +32,20 @@ func main() {
 
 	normalise.Normalise(&contract)
 
-	if errs := validator.Validate(contract); len(errs) > 0 {
-		fmt.Fprintln(os.Stderr, "validation failed:")
+	issues := validator.Validate(contract)
+	errs, warnings := validator.Partition(issues)
+
+	for _, w := range warnings {
+		fmt.Fprintln(os.Stderr, "WARNING:", w.Error())
+	}
+
+	if len(errs) > 0 {
+		fmt.Fprintln(os.Stderr, "Validation failed:")
+
 		for _, e := range errs {
 			fmt.Fprintf(os.Stderr, " - %s\n", e.Error())
 		}
 		os.Exit(1)
-	}
-
-	sch := schema.BuildSchema(contract)
-
-	order, err := sch.TopologicalOrder()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "WARNING:", err)
-	} else {
-		fmt.Fprintln(os.Stderr, "Topological order:", strings.Join(order, ", "))
 	}
 
 	if cfg.JSON {

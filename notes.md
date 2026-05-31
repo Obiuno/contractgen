@@ -288,4 +288,17 @@ go test -v ./internal/schema
   ```
 
  standard flow
- yaml -> parse -> validate ->  build schema -> (topo ->) generator 
+ yaml -> parse -> normalise -> validate ->  build schema -> (topo ->) generator 
+
+ ## Try these examples
+
+The repo includes three contracts you can run:
+
+- `contracts/example.yml` — a clean four-table orders schema (the happy path)
+- `contracts/cycleExample.yml` — a self-referencing table that triggers a cycle warning
+- `contracts/badExample.yml` — deliberately broken, to show validation output
+
+```bash
+go run ./cmd/cgen --input contracts/example.yml
+go run ./cmd/cgen --input contracts/badExample.yml   # see the errors
+```
